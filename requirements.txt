@@ -1,0 +1,6 @@
+# WARNING: THESE ARE LATEST VERSIONS, MAY NOT WORK WITH OLD CODE
+adafruit-circuitpython-ads1x15==2.4.3
+RPi.GPIO==0.7.1
+python-uinput==1.0.1
+thread==2.0.5 # Unsure if this is the correct package
+wiringpi==2.60.1 # DEPRICATED AS OF AUGUST 2019

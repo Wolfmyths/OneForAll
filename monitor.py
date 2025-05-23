@@ -64,7 +64,13 @@ wifi_3bar = 5
 
 
 def str2bool(v):
-    return v.lower() in ("yes", "true", "True", "1")
+    lower = v.lower()
+    if lower in {"yes", "true", "1"}:
+        return True
+    elif lower in {"no", "false", "0"}:
+        return False
+    
+    raise Exception(f"{v} does not match any true or false values, cannot cast")
 
 
 bin_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -351,8 +357,8 @@ for key, pin in keysConfig.items('HOTKEYS'):
             gpio.add_event_detect(int(pin), gpio.BOTH, callback=handle_button, bouncetime=1)
 
 # Send centering commands
-device.emit(uinput.ABS_X, VREF / 2, syn=False);
-device.emit(uinput.ABS_Y, VREF / 2);
+device.emit(uinput.ABS_X, VREF / 2, syn=False)
+device.emit(uinput.ABS_Y, VREF / 2)
 
 # Set up OSD service
 try:
@@ -367,8 +373,8 @@ try:
         logging.error("ERROR: Failed to start OSD, got return code [" + str(osd_poll) + "]\n")
         sys.exit(1)
 except Exception as e:
-    logging.exception("ERROR: Failed start OSD binary");
-    sys.exit(1);
+    logging.exception(f"ERROR: Failed start OSD binary: {e}")
+    sys.exit(1)
 
 
 # Check for shutdown state
@@ -384,16 +390,16 @@ def checkShdn(volt):
 
 # Read voltage
 def readVoltage():
-    global last_bat_read;
+    global last_bat_read
     voltVal = adc.read_adc(0, gain=1)
-    print voltVal
-    print 'read'
+    print(voltVal)
+    print('read')
     volt = int((float(voltVal) * (4.09 / 2047.0)) * 100)
 
     if volt < 300 or (last_bat_read > 300 and last_bat_read - volt > 6 and not last_bat_read == 450):
-        volt = last_bat_read;
+        volt = last_bat_read
 
-    last_bat_read = volt;
+    last_bat_read = volt
 
     return volt
 
@@ -408,18 +414,18 @@ def readVolumeLevel():
     res = process.readline()
     process.close()
 
-    vol = 0;
+    vol = 0
     try:
         vol = int(res.replace("%", "").replace("'C\n", ""))
     except Exception as e:
         logging.info("Audio Err    : " + str(e))
 
-    return vol;
+    return vol
 
 
 # Read wifi (Credits: kite's SAIO project) Modified to only read, not set wifi.
 def readModeWifi(toggle=False):
-    ret = 0;
+    ret = 0
     wifiVal = not os.path.exists(osd_path + 'wifi')  # int(ser.readline().rstrip('\r\n'))
     if toggle:
         wifiVal = not wifiVal
@@ -475,7 +481,7 @@ def readModeWifi(toggle=False):
 
 
 def readModeBluetooth(toggle=False):
-    ret = 0;
+    ret = 0
     BtVal = not os.path.exists(osd_path + 'bluetooth')  # int(ser.readline().rstrip('\r\n'))
     if toggle:
         BtVal = not BtVal
@@ -531,12 +537,7 @@ def doShutdown(channel=None):
 def updateOSD(volt=0, bat=0, temp=0, wifi=0, audio=0, lowbattery=0, info=False, charge=False, bluetooth=False):
     global showOverlay
     showState = showOverlay if SHOW_OVERLAY_HOTKEY_ONLY else True
-    commands = "s" + str(int(showState)) + " p" + str(int((backlightSetting / 1024) * 100)) + " v" + str(
-        volt) + " b" + str(bat) + " t" + str(temp) + " w" + str(
-        wifi) + " a" + str(
-        audio) + " j" + ("1 " if joystick else "0 ") + " u" + ("1 " if bluetooth else "0 ") + " l" + (
-                   "1 " if lowbattery else "0 ") + " " + ("on " if info else "off ") + (
-                   "charge" if charge else "ncharge") + "\n"
+    commands = f"s{int(showState)} p{int((backlightSetting / 1024) * 100)} v{volt} b{bat} t{temp} w{wifi} a{audio} j{int(joystick)} u{int(bluetooth)} l{lowbattery} {"on" if info else "off"} {"charge" if charge else "ncharge"} \n"
     # print commands
     osd_proc.send_signal(signal.SIGUSR1)
     osd_in.write(commands)
@@ -569,7 +570,7 @@ def inputReading():
     global charge
     global joystick
     while (1):
-        if joystick == True:
+        if joystick:
             checkJoystickInput()
         time.sleep(.05)
 
@@ -615,8 +616,8 @@ def checkKeyInputPowerSaving():
 
 
 def checkJoystickInput():
-    an1 = adc.read_adc(2, gain=2 / 3);
-    an0 = adc.read_adc(1, gain=2 / 3);
+    an1 = adc.read_adc(2, gain=2 / 3)
+    an0 = adc.read_adc(1, gain=2 / 3)
 
     logging.debug("X: {} | Y: {}".format(an0, an1))
     logging.debug("Above: {} | Below: {}".format((VREF / 2 + DZONE), (VREF / 2 - DZONE)))
@@ -643,13 +644,13 @@ def constrain(val, min_val, max_val):
 def brightnessUp():
     global backlightSetting
     backlightSetting = constrain(backlightSetting + 128, 0, 1024)
-    wiringpi.pwmWrite(13, backlightSetting);
+    wiringpi.pwmWrite(13, backlightSetting)
 
 
 def brightnessDown():
     global backlightSetting
     backlightSetting = constrain(backlightSetting - 128, 0, 1024)
-    wiringpi.pwmWrite(13, backlightSetting);
+    wiringpi.pwmWrite(13, backlightSetting)
 
 
 def exit_gracefully(signum=None, frame=None):
@@ -667,26 +668,25 @@ volume = readVolumeLevel()
 wifi = readModeWifi()
 bluetooth = bluetooth = readModeBluetooth()
 
-if JOYSTICK_ENABLED == 'True':
+if JOYSTICK_ENABLED == "True":
     inputReadingThread = thread.start_new_thread(inputReading, ())
 
 try:
     while 1:
         try:
-            if not adc == False:
+            if adc:
                 volt = readVoltage()
                 bat = getVoltagepercent(volt)
             checkShdn(volt)
             updateOSD(volt, bat, 20, wifi, volume, lowbattery, info, charge, bluetooth)
-            print 'update OSD'
+            print('update OSD')
             overrideCounter.wait(10)
             if overrideCounter.is_set():
                 overrideCounter.clear()
-            runCounter = 0;
+            runCounter = 0
 
-        except Exception:
-            logging.info("EXCEPTION")
-            pass
+        except Exception as e:
+            logging.info(f"EXCEPTION: {e}")
 
 except KeyboardInterrupt:
     exit_gracefully()
